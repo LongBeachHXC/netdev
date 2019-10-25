@@ -11,6 +11,7 @@ import asyncssh
 
 from netdev.exceptions import TimeoutError, DisconnectError
 from netdev.logger import logger
+from netdev.utilities import get_structured_data
 
 
 class BaseDevice(object):
@@ -298,6 +299,7 @@ class BaseDevice(object):
         re_flags=0,
         strip_command=True,
         strip_prompt=True,
+        use_textfsm=False
     ):
         """
         Sending command to device (support interactive commands with pattern)
@@ -330,6 +332,15 @@ class BaseDevice(object):
         logger.debug(
             "Host {}: Send command output: {}".format(self._host, repr(output))
         )
+        # If both TextFSM and Genie are set, try TextFSM then Genie
+        if use_textfsm:
+            structured_output = get_structured_data(
+                output, platform=self._device_type, command=command_string
+            )
+            # If we have structured data; return it.
+            if not isinstance(structured_output, str):
+                return structured_output
+        logger.debug(f"send_command_timing final output: {output}")
         return output
 
     def _strip_prompt(self, a_string):
